@@ -92,15 +92,25 @@ export const crearTransaccion = async (req: Request, res: Response) => {
   try {
     const { tipo, categoria, monto, descripcion } = req.body;
 
-    if (!tipo || !categoria || !monto || isNaN(Number(monto))) {
-      return res.status(400).send("Datos inválidos");
+    if (!tipo || !["ingreso", "gasto"].includes(tipo)) {
+      return res.status(400).send("Tipo inválido");
+    }
+
+
+    if (!categoria || categoria.trim().length < 3) {
+      return res.status(400).send("La categoría debe tener al menos 3 caracteres");
+    }
+
+    const montoNumero = Number(monto);
+    if (!monto || isNaN(montoNumero) || montoNumero <= 0) {
+      return res.status(400).send("El monto debe ser un número mayor a 0");
     }
 
     const nueva = await TransaccionService.crear({
       tipo,
-      categoria,
-      monto: parseFloat(monto),
-      descripcion,
+      categoria: categoria.trim(),
+      monto: montoNumero,
+      descripcion: descripcion?.trim() || "",
     });
 
     res.redirect("/transacciones");
@@ -165,7 +175,7 @@ export const eliminarTransaccion = async (req: Request, res: Response) => {
   }
 };
 
-// GRAFICOS
+
 export const verGraficos = async (req: Request, res: Response) => {
   try {
     const { ingresos, egresos } = await TransaccionService.calcularTotales();
