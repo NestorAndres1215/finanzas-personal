@@ -12,6 +12,82 @@ export const listarTransacciones = async (req: Request, res: Response) => {
   }
 };
 
+export const listarPorCategoria = async (req: Request, res: Response) => {
+  try {
+    const { categoria } = req.params;
+
+    const transacciones = await TransaccionService.listarPorCategoria(categoria);
+
+    res.render("listar", { transacciones });
+
+  } catch (error) {
+    console.error("Error al listar por categoría:", error);
+    res.status(500).send("Error al filtrar por categoría");
+  }
+};
+
+export const listarPorTipo = async (req: Request, res: Response) => {
+  try {
+    const { tipo } = req.params;
+
+    if (tipo !== "ingreso" && tipo !== "gasto") {
+      return res.status(400).send("Tipo inválido");
+    }
+
+    const transacciones = await TransaccionService.listarPorTipo(tipo);
+
+    res.render("listar", { transacciones });
+
+  } catch (error) {
+    console.error("Error al listar por tipo:", error);
+    res.status(500).send("Error al filtrar por tipo");
+  }
+};
+
+
+export const listarPorFecha = async (req: Request, res: Response) => {
+  try {
+    const { fecha } = req.query;
+
+    if (!fecha) {
+      return res.status(400).send("Debe enviar una fecha");
+    }
+
+    const fechaDate = new Date(fecha as string);
+
+    const transacciones = await TransaccionService.listarPorFecha(fechaDate);
+
+    res.render("listar", { transacciones });
+
+  } catch (error) {
+    console.error("Error al listar por fecha:", error);
+    res.status(500).send("Error al filtrar por fecha");
+  }
+};
+
+export const listarPorRangoFechas = async (req: Request, res: Response) => {
+  try {
+    const { inicio, fin } = req.query;
+
+    if (!inicio || !fin) {
+      return res.status(400).send("Debe enviar fecha inicio y fecha fin");
+    }
+
+    const fechaInicio = new Date(inicio as string);
+    const fechaFin = new Date(fin as string);
+
+    const transacciones = await TransaccionService.listarPorRangoFechas(
+      fechaInicio,
+      fechaFin
+    );
+
+    res.render("listar", { transacciones });
+
+  } catch (error) {
+    console.error("Error al listar por rango de fechas:", error);
+    res.status(500).send("Error al filtrar por rango de fechas");
+  }
+};
 
 export const crearTransaccion = async (req: Request, res: Response) => {
   try {
