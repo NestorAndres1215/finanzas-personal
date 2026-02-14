@@ -1,12 +1,10 @@
-import { PrismaClient, Transaccion } from "@prisma/client";
 import { Request, Response } from "express";
+import { TransaccionService } from "../services/transaccionservice";
 
-const prisma = new PrismaClient();
-
-// Listar todas las transacciones
+// LISTAR
 export const listarTransacciones = async (req: Request, res: Response) => {
   try {
-    const transacciones: Transaccion[] = await prisma.transaccion.findMany();
+    const transacciones = await TransaccionService.listar();
     res.render("listar", { transacciones });
   } catch (error) {
     console.error("Error al listar transacciones:", error);
@@ -14,48 +12,93 @@ export const listarTransacciones = async (req: Request, res: Response) => {
   }
 };
 
-// Crear nueva transacción
+
 export const crearTransaccion = async (req: Request, res: Response) => {
   try {
     const { tipo, categoria, monto, descripcion } = req.body;
 
-    // Validaciones básicas
     if (!tipo || !categoria || !monto || isNaN(Number(monto))) {
-      return res.status(400).send("Datos de transacción incompletos o inválidos");
+      return res.status(400).send("Datos inválidos");
     }
 
-    const nueva: Transaccion = await prisma.transaccion.create({
-      data: {
-        tipo,
-        categoria,
-        monto: parseFloat(monto),
-        descripcion: descripcion || "",
-      },
+    const nueva = await TransaccionService.crear({
+      tipo,
+      categoria,
+      monto: parseFloat(monto),
+      descripcion,
     });
 
-    res.render("creada", { transaccion: nueva });
+    res.redirect("/transacciones");
+
   } catch (error) {
     console.error("Error al crear transacción:", error);
     res.status(500).send("Error al crear la transacción");
   }
 };
 
-// Mostrar gráficos de ingresos y egresos
+
+export const verTransaccion = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+
+    const transaccion = await TransaccionService.obtenerPorId(id);
+
+    if (!transaccion) {
+      return res.status(404).send("Transacción no encontrada");
+    }
+
+    res.render("detalle", { transaccion });
+
+  } catch (error) {
+    console.error("Error al obtener transacción:", error);
+    res.status(500).send("Error interno");
+  }
+};
+
+
+export const actualizarTransaccion = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { tipo, categoria, monto, descripcion } = req.body;
+
+    await TransaccionService.actualizar(id, {
+      tipo,
+      categoria,
+      monto: monto ? parseFloat(monto) : undefined,
+      descripcion,
+    });
+
+    res.redirect("/transacciones");
+
+  } catch (error) {
+    console.error("Error al actualizar:", error);
+    res.status(500).send("Error al actualizar");
+  }
+};
+
+export const eliminarTransaccion = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+
+    await TransaccionService.eliminar(id);
+
+    res.redirect("/transacciones");
+
+  } catch (error) {
+    console.error("Error al eliminar:", error);
+    res.status(500).send("Error al eliminar");
+  }
+};
+
+// GRAFICOS
 export const verGraficos = async (req: Request, res: Response) => {
   try {
-    const transacciones: Transaccion[] = await prisma.transaccion.findMany();
-
-    const ingresos = transacciones
-      .filter(t => t.tipo === "ingreso")
-      .reduce((acc, t) => acc + Number(t.monto), 0);
-
-    const egresos = transacciones
-      .filter(t => t.tipo === "gasto")
-      .reduce((acc, t) => acc + Number(t.monto), 0);
+    const { ingresos, egresos } = await TransaccionService.calcularTotales();
 
     res.render("grafico", { ingresos, egresos });
+
   } catch (error) {
-    console.error("Error al calcular gráficos:", error);
+    console.error("Error al generar gráficos:", error);
     res.status(500).send("Error al generar gráficos");
   }
 };
