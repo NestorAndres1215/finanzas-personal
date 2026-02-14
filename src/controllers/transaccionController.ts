@@ -144,26 +144,64 @@ export const verTransaccion = async (req: Request, res: Response) => {
 export const actualizarTransaccion = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
+
+    if (!req.params.id || isNaN(id) || id <= 0) {
+      return res.status(400).send("ID inválido");
+    }
+
+    const existe = await TransaccionService.obtenerPorId(id);
+    if (!existe) {
+      return res.status(404).send("Transacción no encontrada");
+    }
+
     const { tipo, categoria, monto, descripcion } = req.body;
+
+  
+    if (tipo && !["ingreso", "gasto"].includes(tipo)) {
+      return res.status(400).send("Tipo inválido");
+    }
+
+    if (categoria && categoria.trim().length < 3) {
+      return res.status(400).send("La categoría debe tener mínimo 3 caracteres");
+    }
+
+    let montoNumero: number | undefined = undefined;
+    if (monto !== undefined) {
+      montoNumero = Number(monto);
+      if (isNaN(montoNumero) || montoNumero <= 0) {
+        return res.status(400).send("El monto debe ser mayor a 0");
+      }
+    }
 
     await TransaccionService.actualizar(id, {
       tipo,
-      categoria,
-      monto: monto ? parseFloat(monto) : undefined,
-      descripcion,
+      categoria: categoria?.trim(),
+      monto: montoNumero,
+      descripcion: descripcion?.trim(),
     });
 
     res.redirect("/transacciones");
 
   } catch (error) {
     console.error("Error al actualizar:", error);
-    res.status(500).send("Error al actualizar");
+    res.status(500).send("Error al actualizar la transacción");
   }
 };
+
 
 export const eliminarTransaccion = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
+
+    if (!req.params.id || isNaN(id) || id <= 0) {
+      return res.status(400).send("ID inválido");
+    }
+
+    const existe = await TransaccionService.obtenerPorId(id);
+
+    if (!existe) {
+      return res.status(404).send("Transacción no encontrada");
+    }
 
     await TransaccionService.eliminar(id);
 
@@ -171,9 +209,10 @@ export const eliminarTransaccion = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error("Error al eliminar:", error);
-    res.status(500).send("Error al eliminar");
+    res.status(500).send("Error al eliminar la transacción");
   }
 };
+
 
 
 export const verGraficos = async (req: Request, res: Response) => {
