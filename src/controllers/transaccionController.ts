@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { TransaccionService } from "../services/transaccionService";
 
-// LISTAR
 export const listarTransacciones = async (req: Request, res: Response) => {
   try {
     const transacciones = await TransaccionService.listar();
