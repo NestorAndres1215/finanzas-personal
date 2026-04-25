@@ -1,17 +1,16 @@
 import express, { Request, Response, NextFunction } from "express";
-import path from "path";
 import dotenv from "dotenv";
 import transaccionesRouter from "./routes/transacciones";
+import cors from "cors";
 
 dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
+app.use(cors());
 
-app.use(express.static(path.join(__dirname, "public")));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -21,10 +20,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+
 app.use("/transacciones", transaccionesRouter);
 
 app.get("/", (req: Request, res: Response) => {
-  res.render("index");
+  res.json({
+    message: "API de transacciones funcionando 🚀",
+  });
 });
 
 

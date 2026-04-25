@@ -1,5 +1,5 @@
 import { Transaccion } from "@prisma/client";
-import prisma from "../prima";
+import prisma from "../prisma";
 
 export class TransaccionService {
 

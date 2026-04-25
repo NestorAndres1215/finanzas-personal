@@ -4,10 +4,9 @@ import { TransaccionService } from "../services/transaccionService";
 export const listarTransacciones = async (req: Request, res: Response) => {
   try {
     const transacciones = await TransaccionService.listar();
-    res.render("listar", { transacciones });
+    return res.json(transacciones);
   } catch (error) {
-    console.error("Error al listar transacciones:", error);
-    res.status(500).send("Error al obtener las transacciones");
+    return res.status(500).json({ error: "Error al obtener las transacciones" });
   }
 };
 
@@ -15,13 +14,15 @@ export const listarPorCategoria = async (req: Request, res: Response) => {
   try {
     const { categoria } = req.params;
 
+    if (!categoria) {
+      return res.status(400).json({ error: "Categoría requerida" });
+    }
+
     const transacciones = await TransaccionService.listarPorCategoria(categoria);
 
-    res.render("listar", { transacciones });
-
+    return res.json(transacciones);
   } catch (error) {
-    console.error("Error al listar por categoría:", error);
-    res.status(500).send("Error al filtrar por categoría");
+    return res.status(500).json({ error: "Error al filtrar por categoría" });
   }
 };
 
@@ -29,38 +30,37 @@ export const listarPorTipo = async (req: Request, res: Response) => {
   try {
     const { tipo } = req.params;
 
-    if (tipo !== "ingreso" && tipo !== "gasto") {
-      return res.status(400).send("Tipo inválido");
+    if (!["ingreso", "gasto"].includes(tipo)) {
+      return res.status(400).json({ error: "Tipo inválido" });
     }
 
     const transacciones = await TransaccionService.listarPorTipo(tipo);
 
-    res.render("listar", { transacciones });
-
+    return res.json(transacciones);
   } catch (error) {
-    console.error("Error al listar por tipo:", error);
-    res.status(500).send("Error al filtrar por tipo");
+    return res.status(500).json({ error: "Error al filtrar por tipo" });
   }
 };
-
 
 export const listarPorFecha = async (req: Request, res: Response) => {
   try {
     const { fecha } = req.query;
 
     if (!fecha) {
-      return res.status(400).send("Debe enviar una fecha");
+      return res.status(400).json({ error: "Debe enviar una fecha" });
     }
 
     const fechaDate = new Date(fecha as string);
 
+    if (isNaN(fechaDate.getTime())) {
+      return res.status(400).json({ error: "Fecha inválida" });
+    }
+
     const transacciones = await TransaccionService.listarPorFecha(fechaDate);
 
-    res.render("listar", { transacciones });
-
+    return res.json(transacciones);
   } catch (error) {
-    console.error("Error al listar por fecha:", error);
-    res.status(500).send("Error al filtrar por fecha");
+    return res.status(500).json({ error: "Error al filtrar por fecha" });
   }
 };
 
@@ -69,41 +69,43 @@ export const listarPorRangoFechas = async (req: Request, res: Response) => {
     const { inicio, fin } = req.query;
 
     if (!inicio || !fin) {
-      return res.status(400).send("Debe enviar fecha inicio y fecha fin");
+      return res.status(400).json({ error: "Fechas inicio y fin requeridas" });
     }
 
     const fechaInicio = new Date(inicio as string);
     const fechaFin = new Date(fin as string);
+
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      return res.status(400).json({ error: "Fechas inválidas" });
+    }
 
     const transacciones = await TransaccionService.listarPorRangoFechas(
       fechaInicio,
       fechaFin
     );
 
-    res.render("listar", { transacciones });
-
+    return res.json(transacciones);
   } catch (error) {
-    console.error("Error al listar por rango de fechas:", error);
-    res.status(500).send("Error al filtrar por rango de fechas");
+    return res.status(500).json({ error: "Error al filtrar por rango" });
   }
 };
 
 export const crearTransaccion = async (req: Request, res: Response) => {
+  console.log("Creando transacción con datos:", req.body);
   try {
     const { tipo, categoria, monto, descripcion } = req.body;
 
-    if (!tipo || !["ingreso", "gasto"].includes(tipo)) {
-      return res.status(400).send("Tipo inválido");
+    if (!["ingreso", "gasto"].includes(tipo)) {
+      return res.status(400).json({ error: "Tipo inválido" });
     }
 
-
     if (!categoria || categoria.trim().length < 3) {
-      return res.status(400).send("La categoría debe tener al menos 3 caracteres");
+      return res.status(400).json({ error: "Categoría inválida" });
     }
 
     const montoNumero = Number(monto);
-    if (!monto || isNaN(montoNumero) || montoNumero <= 0) {
-      return res.status(400).send("El monto debe ser un número mayor a 0");
+    if (isNaN(montoNumero) || montoNumero <= 0) {
+      return res.status(400).json({ error: "Monto inválido" });
     }
 
     const nueva = await TransaccionService.crear({
@@ -113,63 +115,57 @@ export const crearTransaccion = async (req: Request, res: Response) => {
       descripcion: descripcion?.trim() || "",
     });
 
-    res.redirect("/transacciones");
-
+    return res.status(201).json(nueva);
   } catch (error) {
-    console.error("Error al crear transacción:", error);
-    res.status(500).send("Error al crear la transacción");
+    return res.status(500).json({ error: "Error al crear la transacción" });
   }
 };
-
 
 export const verTransaccion = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
 
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
     const transaccion = await TransaccionService.obtenerPorId(id);
 
     if (!transaccion) {
-      return res.status(404).send("Transacción no encontrada");
+      return res.status(404).json({ error: "No encontrada" });
     }
 
-    res.render("detalle", { transaccion });
-
+    return res.json(transaccion);
   } catch (error) {
-    console.error("Error al obtener transacción:", error);
-    res.status(500).send("Error interno");
+    return res.status(500).json({ error: "Error interno" });
   }
 };
-
 
 export const actualizarTransaccion = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
 
-    if (!req.params.id || isNaN(id) || id <= 0) {
-      return res.status(400).send("ID inválido");
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
     }
 
     const existe = await TransaccionService.obtenerPorId(id);
     if (!existe) {
-      return res.status(404).send("Transacción no encontrada");
+      return res.status(404).json({ error: "No encontrada" });
     }
 
     const { tipo, categoria, monto, descripcion } = req.body;
 
-  
     if (tipo && !["ingreso", "gasto"].includes(tipo)) {
-      return res.status(400).send("Tipo inválido");
+      return res.status(400).json({ error: "Tipo inválido" });
     }
 
-    if (categoria && categoria.trim().length < 3) {
-      return res.status(400).send("La categoría debe tener mínimo 3 caracteres");
-    }
+    let montoNumero: number | undefined;
 
-    let montoNumero: number | undefined = undefined;
     if (monto !== undefined) {
       montoNumero = Number(monto);
       if (isNaN(montoNumero) || montoNumero <= 0) {
-        return res.status(400).send("El monto debe ser mayor a 0");
+        return res.status(400).json({ error: "Monto inválido" });
       }
     }
 
@@ -180,49 +176,42 @@ export const actualizarTransaccion = async (req: Request, res: Response) => {
       descripcion: descripcion?.trim(),
     });
 
-    res.redirect("/transacciones");
-
+    return res.json({ message: "Actualizado correctamente" });
   } catch (error) {
-    console.error("Error al actualizar:", error);
-    res.status(500).send("Error al actualizar la transacción");
+    return res.status(500).json({ error: "Error al actualizar" });
   }
 };
-
 
 export const eliminarTransaccion = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
 
-    if (!req.params.id || isNaN(id) || id <= 0) {
-      return res.status(400).send("ID inválido");
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
     }
 
     const existe = await TransaccionService.obtenerPorId(id);
-
     if (!existe) {
-      return res.status(404).send("Transacción no encontrada");
+      return res.status(404).json({ error: "No encontrada" });
     }
 
     await TransaccionService.eliminar(id);
 
-    res.redirect("/transacciones");
-
+    return res.json({ message: "Eliminado correctamente" });
   } catch (error) {
-    console.error("Error al eliminar:", error);
-    res.status(500).send("Error al eliminar la transacción");
+    return res.status(500).json({ error: "Error al eliminar" });
   }
 };
-
-
 
 export const verGraficos = async (req: Request, res: Response) => {
   try {
     const { ingresos, egresos } = await TransaccionService.calcularTotales();
 
-    res.render("grafico", { ingresos, egresos });
-
+    return res.json({
+      ingresos,
+      egresos,
+    });
   } catch (error) {
-    console.error("Error al generar gráficos:", error);
-    res.status(500).send("Error al generar gráficos");
+    return res.status(500).json({ error: "Error al generar gráficos" });
   }
 };
