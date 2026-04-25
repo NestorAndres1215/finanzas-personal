@@ -4,13 +4,28 @@ import prisma from "../prisma";
 export class TransaccionService {
 
 
-    static async listar(): Promise<Transaccion[]> {
-        return await prisma.transaccion.findMany({
-            orderBy: {
-                id: "desc",
-            },
-        });
-    }
+static async listar(page: number = 1, limit: number = 10) {
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await prisma.$transaction([
+    prisma.transaccion.findMany({
+      orderBy: {
+        id: "desc",
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.transaccion.count(),
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
 
     static async listarPorCategoria(categoria: string): Promise<Transaccion[]> {
         return await prisma.transaccion.findMany({

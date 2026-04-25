@@ -1,12 +1,15 @@
 import api from "./api";
-import type { Transaction } from "../types/transaction";
 
-export const listar = async (): Promise<Transaction[]> => {
-  const res = await api.get("/transacciones");
+
+export const listar = async (page: number, limit: number) => {
+  const res = await api.get("/transacciones", {
+    params: { page, limit },
+  });
+
   return res.data;
 };
 
-export const crear = async (data: Omit<Transaction, "id">) => {
+export const crear = async (data: Omit<any, "id">) => {
     console.log("Enviando datos para crear transacción:", data);
   return await api.post("/transacciones", data);
 };

@@ -3,8 +3,12 @@ import { TransaccionService } from "../services/transaccionService";
 
 export const listarTransacciones = async (req: Request, res: Response) => {
   try {
-    const transacciones = await TransaccionService.listar();
-    return res.json(transacciones);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await TransaccionService.listar(page, limit);
+
+    return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: "Error al obtener las transacciones" });
   }
